@@ -146,6 +146,7 @@ void kill(int pid)
         }
         else
         {
+            List_first(readyQ[prio]);
             processToKill = List_search(readyQ[prio], compareInts, &pid);
             if (processToKill == NULL)
             {
@@ -154,25 +155,38 @@ void kill(int pid)
             else
             {
                 killProcess(processToKill);
+                List_remove(readyQ[prio]);
                 printf("Sucessfully killed process %d\n", pid);
                 return;
             }
         }
     }
-    processToKill = List_search(sendQ, compareInts, &pid);
-    if (processToKill == NULL)
+
+    if (List_count(sendQ) > 0)
     {
+        List_first(sendQ);
+        processToKill = List_search(sendQ, compareInts, &pid);
+        if (processToKill != NULL)
+        {
+            killProcess(processToKill);
+            List_remove(sendQ);
+            printf("Sucessfully killed process %d\n", pid);
+            return;
+        }
+    }
+    else if (List_count(recieveQ) > 0)
+    {
+        List_first(recieveQ);
         processToKill = List_search(recieveQ, compareInts, &pid);
+        if (processToKill != NULL)
+        {
+            killProcess(processToKill);
+            List_remove(recieveQ);
+            printf("Sucessfully killed process %d\n", pid);
+            return;
+        }
     }
-    if (processToKill != NULL)
-    {
-        killProcess(processToKill);
-        printf("Sucessfully killed process %d\n", pid);
-    }
-    else
-    {
-        printf("Cannot find process with pid %d\n", pid);
-    }
+    printf("Cannot find process with pid %d\n", pid);
 }
 
 void exit_() {}
@@ -212,6 +226,7 @@ void displayMenu()
     printf("-------------------------------------------------------------------------------------\n");
     printf("Type T to display all process queues and their contents \n");
     printf("-------------------------------------------------------------------------------------\n");
+    printf("Enter your command here: ");
 }
 
 int main()
@@ -222,7 +237,6 @@ int main()
     sendQ = List_create();
     recieveQ = List_create();
 
-    PCB *init;
     init = malloc(sizeof(PCB));
 
     init->pid = pid++;
@@ -240,10 +254,9 @@ int main()
     displayMenu();
     while (!exit)
     {
-        printf("Enter your command here: ");
         scanf("%c", &command);
 
-        if (command == '\0')
+        if (command == '\n')
         {
             printf("Enter your command here: ");
             continue;
