@@ -24,7 +24,7 @@ struct PCB
     int pid;
     int priority;
     enum State state;
-    List *msg;
+    char msg[MAX_MSG_LEN];
 };
 
 typedef struct SEM Sem;
@@ -34,10 +34,16 @@ struct SEM
     List *proc;
 };
 
+typedef enum
+{
+    KILL,
+    INFO
+} Code;
+
 void create(int);
 void fork();
-void kill(int);
-void exit_();
+bool kill(int);
+bool exit_();
 void quantum();
 void send(int, char *);
 void receive();
