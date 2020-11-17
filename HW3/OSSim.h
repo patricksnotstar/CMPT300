@@ -24,7 +24,7 @@ struct PCB
     int pid;
     int priority;
     enum State state;
-    char msg[MAX_MSG_LEN];
+    List *msg;
 };
 
 typedef struct SEM Sem;
@@ -37,7 +37,9 @@ struct SEM
 typedef enum
 {
     KILL,
-    INFO
+    INFO,
+    SEARCH,
+    NEXT
 } Code;
 
 void create(int);

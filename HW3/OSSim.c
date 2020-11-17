@@ -21,7 +21,34 @@ void freeItem(void *pItem)
 
 void killProcess(PCB *processInQuestion)
 {
+    List_free(processInQuestion->msg, freeItem);
     free(processInQuestion);
+}
+
+void printMessages(List *messages, Code code)
+{
+    int numMsg = List_count(messages);
+    if (numMsg == 0)
+    {
+        printf("* This process has 0 messages\n");
+    }
+    else
+    {
+        List_first(messages);
+        printf("* Messages:\n");
+        if (code == NEXT)
+        {
+            printf("        ** %s\n", (char *)List_trim(messages));
+        }
+        else
+        {
+            for (int i = 0; i < numMsg; i++)
+            {
+                printf("    ** %s\n", (char *)messages->current->item);
+                List_next(messages);
+            }
+        }
+    }
 }
 
 void nextProcess()
@@ -52,15 +79,7 @@ void nextProcess()
         nextProcess->state = RUNNING;
         runningProcess = nextProcess;
         printf("Running process %d: \n", runningProcess->pid);
-        if (runningProcess->msg[0] == '\0')
-        {
-            printf("    * This process has 0 message\n");
-        }
-        else
-        {
-            printf("    * Message: %s", runningProcess->msg);
-            runningProcess->msg[0] = '\0';
-        }
+        printMessages(runningProcess->msg, NEXT);
     }
 }
 
@@ -70,19 +89,13 @@ void printProcInfo(PCB *process)
     printf("Process with pid %d has: \n", process->pid);
     printf("    * Current state is: %s\n", states[process->state]);
     printf("    * Priority is: %d\n", process->priority);
-    if (process->msg[0] == '\0')
-    {
-        printf("    * Has 0 message\n");
-    }
-    else
-    {
-        printf("    * Message: %s", process->msg);
-    }
+    printf("    ");
+    printMessages(process->msg, INFO);
 }
 
-void searchAndDoStuff(int pid, Code code)
+PCB *searchAndDoStuff(int pid, Code code)
 {
-    void *processInQuestion;
+    PCB *processInQuestion;
     if (runningProcess->pid == pid)
     {
         if (code == KILL)
@@ -91,13 +104,13 @@ void searchAndDoStuff(int pid, Code code)
             printf("Sucessfully killed process %d\n", pid);
             nextProcess();
             numProc--;
-            return;
+            return NULL;
         }
         else
         {
             printProcInfo(runningProcess);
         }
-        return;
+        return NULL;
     }
     int prio = 0;
     while (prio < 3)
@@ -122,13 +135,14 @@ void searchAndDoStuff(int pid, Code code)
                     List_remove(readyQ[prio]);
                     printf("Sucessfully killed process %d\n", pid);
                     numProc--;
-                    return;
+                    return NULL;
                 }
-                else
+                else if (code == INFO)
                 {
                     printProcInfo(processInQuestion);
                 }
-                return;
+
+                return processInQuestion;
             }
         }
     }
@@ -145,13 +159,13 @@ void searchAndDoStuff(int pid, Code code)
                 List_remove(sendQ);
                 printf("Sucessfully killed process %d\n", pid);
                 numProc--;
-                return;
+                return NULL;
             }
-            else
+            else if (code == INFO)
             {
                 printProcInfo(processInQuestion);
-                return;
             }
+            return processInQuestion;
         }
     }
     else if (List_count(recieveQ) > 0)
@@ -166,16 +180,17 @@ void searchAndDoStuff(int pid, Code code)
                 List_remove(recieveQ);
                 printf("Sucessfully killed process %d\n", pid);
                 numProc--;
-                return;
+                return NULL;
             }
-            else
+            else if (code == INFO)
             {
                 printProcInfo(processInQuestion);
-                return;
             }
+            return processInQuestion;
         }
     }
     printf("Cannot find process with pid %d\n", pid);
+    return false;
 }
 
 void create(int prio)
@@ -191,7 +206,7 @@ void create(int prio)
 
     newProcess->pid = pid++;
     newProcess->priority = prio;
-    newProcess->msg[0] = '\0';
+    newProcess->msg = List_create();
 
     if (runningProcess == init)
     {
@@ -229,9 +244,13 @@ void fork()
 
     newProcess->pid = pid++;
     newProcess->priority = runningProcess->priority;
-    for (int i = 0; runningProcess->msg[i] != '\0'; i++)
+    List_first(runningProcess->msg);
+    for (int i = 0; i < List_count(runningProcess->msg); i++)
     {
-        newProcess->msg[i] = runningProcess->msg[i];
+        size_t msgLen = strlen((char *)runningProcess->msg->current->item);
+        char *dupMsg = malloc((msgLen) * sizeof(char));
+        strncpy(dupMsg, (char *)runningProcess->msg->current->item, msgLen);
+        List_prepend(newProcess->msg, dupMsg);
     }
 
     newProcess->state = READY;
@@ -253,68 +272,13 @@ bool kill(int pid)
         }
         else
         {
+            killProcess(init);
             printf("Sucessfully killed init\n");
             printf("Shutting down...bye\n");
             return true;
         }
     }
-    // if (runningProcess->pid == pid)
-    // {
-    //     killProcess(runningProcess);
-    //     nextProcess();
-    //     return;
-    // }
-    // void *processInQuestion;
-    // int prio = 0;
-    // while (prio < 3)
-    // {
-    //     if (List_count(readyQ[prio]) == 0)
-    //     {
-    //         prio++;
-    //     }
-    //     else
-    //     {
-    //         List_first(readyQ[prio]);
-    //         processInQuestion = List_search(readyQ[prio], compareInts, &pid);
-    //         if (processInQuestion == NULL)
-    //         {
-    //             prio++;
-    //         }
-    //         else
-    //         {
-    //             killProcess(processInQuestion);
-    //             List_remove(readyQ[prio]);
-    //             printf("Sucessfully killed process %d\n", pid);
-    //             return;
-    //         }
-    //     }
-    // }
 
-    // if (List_count(sendQ) > 0)
-    // {
-    //     List_first(sendQ);
-    //     processInQuestion = List_search(sendQ, compareInts, &pid);
-    //     if (processInQuestion != NULL)
-    //     {
-    //         killProcess(processInQuestion);
-    //         List_remove(sendQ);
-    //         printf("Sucessfully killed process %d\n", pid);
-    //         return;
-    //     }
-    // }
-    // else if (List_count(recieveQ) > 0)
-    // {
-    //     List_first(recieveQ);
-    //     processInQuestion = List_search(recieveQ, compareInts, &pid);
-    //     if (processInQuestion != NULL)
-    //     {
-    //         killProcess(processInQuestion);
-    //         List_remove(recieveQ);
-    //         printf("Sucessfully killed process %d\n", pid);
-    //         return;
-    //     }
-    // }
-    // printf("Cannot find process with pid %d\n", pid);
     searchAndDoStuff(pid, KILL);
     return false;
 }
@@ -336,7 +300,7 @@ bool exit_()
         }
         else
         {
-            printf("Cannot terminate init process because there is another process alive");
+            printf("Cannot terminate init process because there is another process alive\n");
             return false;
         }
     }
@@ -358,7 +322,31 @@ void quantum()
     }
 }
 
-void send(int pid, char *msg) {}
+void send(int pid, char *msg)
+{
+    if (runningProcess->pid == pid)
+    {
+        printf("You cannot send a message to the current running process\n");
+        return;
+    }
+
+    PCB *receiver = searchAndDoStuff(pid, SEARCH);
+    if (receiver != NULL)
+    {
+        size_t msgLen = strlen(msg);
+        if (msgLen > MAX_MSG_LEN)
+        {
+            msgLen = MAX_MSG_LEN;
+        }
+        char *newMsg = malloc((msgLen + 1) * sizeof(char));
+        strncpy(newMsg, msg, msgLen);
+        newMsg[msgLen] = '\0';
+        List_prepend(receiver->msg, newMsg);
+        List_prepend(sendQ, runningProcess);
+        runningProcess->state = BLOCK;
+        nextProcess();
+    }
+}
 void receive() {}
 void reply(int pid, char *msg) {}
 void newSemaphore(int sid, int initValue) {}
@@ -368,6 +356,7 @@ void procInfo(int pid)
 {
     searchAndDoStuff(pid, INFO);
 }
+
 void totalInfo()
 {
 
@@ -474,7 +463,7 @@ int main()
 
     init->pid = pid++;
     init->priority = 3;
-    init->msg[0] = '\0';
+    init->msg = List_create();
     init->state = RUNNING;
     runningProcess = init;
 
@@ -532,8 +521,10 @@ int main()
             printf("Please enter a pid for the receiving process: ");
             scanf("%d", &param1);
             printf("\n");
+            getchar();
             printf("Please enter a message to send: ");
-            fgets(msg, (MAX_MSG_LEN - 1), stdin);
+            fgets(msg, MAX_MSG_LEN, stdin);
+            printf("\n");
             send(param1, msg);
             printf("-------------------------------------------------------------------------------------\n");
             break;
@@ -545,8 +536,9 @@ int main()
             printf("Please enter a pid for the receiving process: ");
             scanf("%d", &param1);
             printf("\n");
+            getchar();
             printf("Please enter a message to reply: ");
-            fgets(msg, (MAX_MSG_LEN - 1), stdin);
+            fgets(msg, MAX_MSG_LEN, stdin);
             reply(param1, msg);
             printf("-------------------------------------------------------------------------------------\n");
             break;
