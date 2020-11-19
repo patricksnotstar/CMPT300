@@ -16,3 +16,5 @@ Design decisions I made:
 * I prevent a process from doing a blocking operation like send and receive when it owns a semaphore because when it is blocked and other process cannot get in the critical section, that would also violate condition number 2 of the solution to critical section problem. I make the user to call V first instead of doing it automatically because the process is still alive in this case so I cannot arbitrarily release its semaphore so this would be a decision the user has to make.
 
 * When calling TotalInfo, I only display the pid stored in each queue because I think that's enough. If a process is in ready queue 0 then you know it has priority 0 and in READY state. This simulation does not allow for changing priority so I think this is sufficient enough. Similarly, if a process is in send queue, you know its state is BLOCK so I just need to display the priority.
+
+* Apart from the commands given in the assignment description, I also added command 'm' to display the menu again.

@@ -57,7 +57,7 @@ typedef enum
 } Code;
 
 void create(int);
-void fork();
+void fork_();
 bool kill(int);
 bool exit_();
 void quantum();

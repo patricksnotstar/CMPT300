@@ -151,13 +151,12 @@ PCB *searchAndDoStuff(int pid, Code code)
     {
         if (code == KILL)
         {
-            killProcess(runningProcess);
-            printf("Sucessfully killed process %d\n", pid);
             if (runningProcess->sid != -1)
             {
                 printf("The semaphore currently owned by this process will be released\n");
                 V(runningProcess->sid);
             }
+            killProcess(runningProcess);
             nextProcess();
             return NULL;
         }
@@ -188,7 +187,6 @@ PCB *searchAndDoStuff(int pid, Code code)
                 {
                     killProcess(processInQuestion);
                     List_remove(readyQ[prio]);
-                    printf("Sucessfully killed process %d\n", pid);
                     if (processInQuestion->sid != -1)
                     {
                         printf("The semaphore currently owned by this process will be released\n");
@@ -216,7 +214,6 @@ PCB *searchAndDoStuff(int pid, Code code)
             {
                 killProcess(processInQuestion);
                 List_remove(sendQ);
-                printf("Sucessfully killed process %d\n", pid);
                 if (processInQuestion->sid != -1)
                 {
                     printf("The semaphore currently owned by this process will be released\n");
@@ -247,7 +244,6 @@ PCB *searchAndDoStuff(int pid, Code code)
             {
                 killProcess(processInQuestion);
                 List_remove(receiveQ);
-                printf("Sucessfully killed process %d\n", pid);
                 if (processInQuestion->sid != -1)
                 {
                     printf("The semaphore currently owned by this process will be released\n");
@@ -287,7 +283,6 @@ PCB *searchAndDoStuff(int pid, Code code)
             {
                 killProcess(processInQuestion);
                 List_remove(sem[sid].proc);
-                printf("Sucessfully killed process %d\n", pid);
                 if (processInQuestion->sid != -1)
                 {
                     printf("The semaphore currently owned by this process will be released\n");
@@ -339,7 +334,7 @@ void create(int prio)
     numProc++;
 }
 
-void fork()
+void fork_()
 {
 
     if (runningProcess == init)
@@ -377,7 +372,9 @@ void fork()
     }
 
     newProcess->state = READY;
-    asprintf(&newProcess->proc_msg, "Forked from process %d. There are %d message(s) waiting to be received.\n", runningProcess->pid, List_count(newProcess->msg));
+    size_t need = snprintf(NULL, 0, "Forked from process %d. There are %d message(s) waiting to be received.\n", runningProcess->pid, List_count(newProcess->msg));
+    newProcess->proc_msg = malloc(need + 1);
+    snprintf(newProcess->proc_msg, need, "Forked from process %d. There are %d message(s) waiting to be received.\n", runningProcess->pid, List_count(newProcess->msg));
     List_prepend(readyQ[runningProcess->priority], newProcess);
 
     printf("Successfully forked a new process with PID: %d\n", newProcess->pid);
@@ -411,12 +408,12 @@ bool exit_()
 {
     if (runningProcess->pid != init->pid)
     {
-        killProcess(runningProcess);
         if (runningProcess->sid != -1)
         {
             printf("The semaphore current owned by this process will be released.\n");
             V(runningProcess->sid);
         }
+        killProcess(runningProcess);
         nextProcess();
         return false;
     }
@@ -502,15 +499,17 @@ void send(int pid, char *msg)
             free(receiver->proc_msg);
             receiver->proc_msg = NULL;
         }
-        asprintf(&receiver->proc_msg, "Message received from %d, call receive() to see. There are now %d message(s) waiting to be received.\n", runningProcess->pid, List_count(receiver->msg));
+        size_t need = snprintf(NULL, 0, "Message received from %d, call receive() to see. There are now %d message(s) waiting to be received.\n", runningProcess->pid, List_count(receiver->msg));
+        receiver->proc_msg = malloc(need + 1);
+        snprintf(receiver->proc_msg, need, "Message received from %d, call receive() to see. There are now %d message(s) waiting to be received.\n", runningProcess->pid, List_count(receiver->msg));
         printf("Sucessfully sent the message\n");
 
         if (runningProcess->pid != init->pid)
         {
             List_prepend(sendQ, runningProcess);
             runningProcess->state = BLOCK;
+            printf("Process %d is now blocked until a reply comes\n", runningProcess->pid);
             nextProcess();
-            printf("This process is now blocked until a reply comes\n");
         }
         else if (runningProcess->pid == init->pid && wasOnReceiveQ)
         {
@@ -523,7 +522,7 @@ void receive()
     if (List_count(runningProcess->msg) > 0)
     {
         MSG *temp = List_trim(runningProcess->msg);
-        printf("Received message from pid %d: %s", temp->srcPid, temp->msg);
+        printf("Received message from pid %d: %s\n", temp->srcPid, temp->msg);
         free(temp->msg);
         free(temp);
     }
@@ -575,9 +574,11 @@ void reply(int pid, char *msg)
             free(receiver->proc_msg);
             receiver->proc_msg = NULL;
         }
-        asprintf(&receiver->proc_msg, "There are %d message(s) waiting to be received. Reply received from pid %d, message is: %s\n", List_count(receiver->msg), runningProcess->pid, newMessage);
+        size_t need = snprintf(NULL, 0, "There are %d message(s) waiting to be received. Reply received from pid %d, message is: %s\n", List_count(receiver->msg), runningProcess->pid, newMessage);
+        receiver->proc_msg = malloc(need + 1);
+        snprintf(receiver->proc_msg, need, "There are %d message(s) waiting to be received. Reply received from pid %d, message is: %s\n", List_count(receiver->msg), runningProcess->pid, newMessage);
         free(newMessage);
-        printf("Success! Replied to process with pid %d", pid);
+        printf("Success! Replied to process with pid %d\n", pid);
         if (runningProcess->pid == init->pid && wasOnSendQ)
         {
             nextProcess();
@@ -679,7 +680,8 @@ void procInfo(int pid)
 void totalInfo()
 {
 
-    printf("The queues are displayed in right to left order (<-), i.e. the right most pid will be the first one in the queue\n");
+    printf("The queues are displayed in right to left order (<-) or bottom to top order (^), i.e. the right most pid will be the first one in the queue. Please run command t to see all info.\n");
+    printf("\n");
     printf("Current running process is %d\n", runningProcess->pid);
     for (int p = 0; p < 3; p++)
     {
@@ -840,7 +842,7 @@ int main()
             command = '\0';
             break;
         case 'f':
-            fork();
+            fork_();
             printf("-------------------------------------------------------------------------------------\n");
             command = '\0';
             break;
