@@ -25,13 +25,24 @@ struct PCB
     int priority;
     enum State state;
     List *msg;
+    char *proc_msg;
+    int sid;
 };
 
-typedef struct SEM Sem;
+typedef struct SEM SEM;
 struct SEM
 {
-    int value;
+    int max;
+    int curr;
     List *proc;
+    int lastCall_V_PID;
+};
+
+typedef struct MSG MSG;
+struct MSG
+{
+    char *msg;
+    int srcPid;
 };
 
 typedef enum
@@ -39,7 +50,10 @@ typedef enum
     KILL,
     INFO,
     SEARCH,
-    NEXT
+    NEXT,
+    SEND,
+    REPLY,
+    CREATE
 } Code;
 
 void create(int);
