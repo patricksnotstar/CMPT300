@@ -20,6 +20,13 @@ void freeItem(void *pItem)
     free(pItem);
 }
 
+void freeMessage(void *pItem)
+{
+    MSG *temp = pItem;
+    free(temp->msg);
+    free(temp);
+}
+
 bool validateSID(int sid, Code code)
 {
     if (sid > 5 || sid < 0)
@@ -50,17 +57,7 @@ bool validateSID(int sid, Code code)
 void killProcess(PCB *processInQuestion)
 {
     int pid = processInQuestion->pid;
-    int msgCount = List_count(processInQuestion->msg);
-    // I have to do it this way instead of List_free because inside each item in the list is a dynamically allocated msg and List_free only frees the item
-    if (msgCount > 0)
-    {
-        for (int i = 0; i < msgCount; i++)
-        {
-            MSG *temp = List_trim(processInQuestion->msg);
-            free(temp->msg);
-            free(temp);
-        }
-    }
+    List_free(processInQuestion->msg, freeMessage);
     free(processInQuestion->proc_msg);
     free(processInQuestion);
     numProc--;
@@ -151,10 +148,13 @@ PCB *searchAndDoStuff(int pid, Code code)
     {
         if (code == KILL)
         {
-            if (runningProcess->sid != -1)
+            for (int i = 0; i < 5; i++)
             {
-                printf("The semaphore currently owned by this process will be released\n");
-                V(runningProcess->sid);
+                if (runningProcess->sems[i])
+                {
+                    printf("The semaphore current owned by this process will be released.\n");
+                    V(i);
+                }
             }
             killProcess(runningProcess);
             nextProcess();
@@ -187,10 +187,13 @@ PCB *searchAndDoStuff(int pid, Code code)
                 {
                     killProcess(processInQuestion);
                     List_remove(readyQ[prio]);
-                    if (processInQuestion->sid != -1)
+                    for (int i = 0; i < 5; i++)
                     {
-                        printf("The semaphore currently owned by this process will be released\n");
-                        V(processInQuestion->sid);
+                        if (processInQuestion->sems[i])
+                        {
+                            printf("The semaphore current owned by this process will be released.\n");
+                            V(i);
+                        }
                     }
                     return NULL;
                 }
@@ -214,10 +217,13 @@ PCB *searchAndDoStuff(int pid, Code code)
             {
                 killProcess(processInQuestion);
                 List_remove(sendQ);
-                if (processInQuestion->sid != -1)
+                for (int i = 0; i < 5; i++)
                 {
-                    printf("The semaphore currently owned by this process will be released\n");
-                    V(processInQuestion->sid);
+                    if (processInQuestion->sems[i])
+                    {
+                        printf("The semaphore current owned by this process will be released.\n");
+                        V(i);
+                    }
                 }
                 return NULL;
             }
@@ -244,10 +250,13 @@ PCB *searchAndDoStuff(int pid, Code code)
             {
                 killProcess(processInQuestion);
                 List_remove(receiveQ);
-                if (processInQuestion->sid != -1)
+                for (int i = 0; i < 5; i++)
                 {
-                    printf("The semaphore currently owned by this process will be released\n");
-                    V(processInQuestion->sid);
+                    if (processInQuestion->sems[i])
+                    {
+                        printf("The semaphore current owned by this process will be released.\n");
+                        V(i);
+                    }
                 }
                 return NULL;
             }
@@ -283,10 +292,13 @@ PCB *searchAndDoStuff(int pid, Code code)
             {
                 killProcess(processInQuestion);
                 List_remove(sem[sid].proc);
-                if (processInQuestion->sid != -1)
+                for (int i = 0; i < 5; i++)
                 {
-                    printf("The semaphore currently owned by this process will be released\n");
-                    V(processInQuestion->sid);
+                    if (processInQuestion->sems[i])
+                    {
+                        printf("The semaphore current owned by this process will be released.\n");
+                        V(i);
+                    }
                 }
                 return NULL;
             }
@@ -316,7 +328,10 @@ void create(int prio)
     newProcess->priority = prio;
     newProcess->msg = List_create();
     newProcess->proc_msg = NULL;
-    newProcess->sid = -1;
+    for (int i = 0; i < 5; i++)
+    {
+        newProcess->sems[i] = false;
+    }
 
     if (runningProcess == init)
     {
@@ -355,7 +370,10 @@ void fork_()
     newProcess->pid = pid++;
     newProcess->priority = runningProcess->priority;
     newProcess->msg = List_create();
-    newProcess->sid = -1;
+    for (int i = 0; i < 5; i++)
+    {
+        newProcess->sems[i] = false;
+    }
 
     MSG *original = List_first(runningProcess->msg);
     for (int i = 0; i < List_count(runningProcess->msg); i++)
@@ -408,10 +426,13 @@ bool exit_()
 {
     if (runningProcess->pid != init->pid)
     {
-        if (runningProcess->sid != -1)
+        for (int i = 0; i < 5; i++)
         {
-            printf("The semaphore current owned by this process will be released.\n");
-            V(runningProcess->sid);
+            if (runningProcess->sems[i])
+            {
+                printf("The semaphore current owned by this process will be released.\n");
+                V(i);
+            }
         }
         killProcess(runningProcess);
         nextProcess();
@@ -422,6 +443,7 @@ bool exit_()
         if (numProc == 0)
         {
 
+            killProcess(init);
             printf("Shutting down... Bye\n");
             return true;
         }
@@ -461,12 +483,6 @@ void send(int pid, char *msg)
     if (runningProcess->pid == pid)
     {
         printf("You cannot send a message to the current running process\n");
-        return;
-    }
-
-    if (runningProcess->sid != -1)
-    {
-        printf("Failed! You need to release your semaphore before you can do a blocking operation\n");
         return;
     }
 
@@ -528,11 +544,6 @@ void receive()
     }
     else if (runningProcess->pid != init->pid)
     {
-        if (runningProcess->sid != -1)
-        {
-            printf("Failed! You need to release your semaphore before you can do a blocking operation\n");
-            return;
-        }
         List_prepend(receiveQ, runningProcess);
         runningProcess->state = BLOCK;
         printf("No message to receive, blocking until there is a message\n");
@@ -596,7 +607,6 @@ void newSemaphore(int sid, int initValue)
     sem[sid].max = initValue;
     sem[sid].curr = initValue;
     sem[sid].proc = List_create();
-    sem[sid].lastCall_V_PID = -1;
     printf("Successfully created a semaphore with ID %d\n", sid);
 }
 void P(int sid)
@@ -607,9 +617,9 @@ void P(int sid)
         return;
     }
 
-    if (runningProcess->sid != -1)
+    if (runningProcess->sems[sid])
     {
-        printf("You cannot own 2 semaphores at once and you cannot call P on the same semaphore more than once.\n");
+        printf("You cannot call P on the same semaphore twice!\n");
         return;
     }
 
@@ -618,12 +628,11 @@ void P(int sid)
         return;
     }
 
-    sem[sid].lastCall_V_PID = -1;
     if (sem[sid].curr > 0)
     {
         printf("Process with pid %d now owns the semaphore\n", runningProcess->pid);
         sem[sid].curr--;
-        runningProcess->sid = sid;
+        runningProcess->sems[sid] = true;
         return;
     }
 
@@ -641,7 +650,7 @@ void V(int sid)
         return;
     }
 
-    if (runningProcess->sid != sid)
+    if (!runningProcess->sems[sid])
     {
         printf("You cannot a release a semaphore that you don't own\n");
         return;
@@ -652,17 +661,10 @@ void V(int sid)
         return;
     }
 
-    if (sem[sid].lastCall_V_PID == runningProcess->pid)
-    {
-        printf("You have already called V on this semaphore\n");
-        return;
-    }
-
     if (sem[sid].curr + 1 <= sem[sid].max)
     {
-        printf("Success! Semaphore value is now %d\n", ++sem[sid].curr);
-        runningProcess->sid = -1;
-        sem[sid].lastCall_V_PID = runningProcess->pid;
+        printf("Success! Semaphore with id %d value is now %d\n", sid, ++sem[sid].curr);
+        runningProcess->sems[sid] = false;
     }
     if (sem[sid].curr > 0 && List_count(sem[sid].proc) > 0)
     {
@@ -682,7 +684,7 @@ void totalInfo()
 
     printf("The queues are displayed in right to left order (<-) or bottom to top order (^), i.e. the right most pid will be the first one in the queue. Please run command t to see all info.\n");
     printf("\n");
-    printf("Current running process is %d\n", runningProcess->pid);
+    printf("Current running process is %d with priority %d\n", runningProcess->pid, runningProcess->priority);
     for (int p = 0; p < 3; p++)
     {
         int count = List_count(readyQ[p]);
@@ -807,7 +809,10 @@ int main()
     init->priority = 3;
     init->msg = List_create();
     init->state = RUNNING;
-    init->sid = -1;
+    for (int i = 0; i < 5; i++)
+    {
+        init->sems[i] = false;
+    }
     init->proc_msg = NULL;
     runningProcess = init;
 

@@ -26,7 +26,7 @@ struct PCB
     enum State state;
     List *msg;
     char *proc_msg;
-    int sid;
+    bool sems[5];
 };
 
 typedef struct SEM SEM;
@@ -35,7 +35,6 @@ struct SEM
     int max;
     int curr;
     List *proc;
-    int lastCall_V_PID;
 };
 
 typedef struct MSG MSG;
