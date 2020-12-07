@@ -114,19 +114,19 @@ void ls_l(char *dir)
             else
             {
                 printf("%14s", dr->d_name);
-                if (selectedOptions[1] == 1 && S_ISLNK(buf.st_mode))
-                {
-                    printf(" -> %s", realPath);
-                }
+                // if (selectedOptions[1] == 1 && S_ISLNK(buf.st_mode))
+                // {
+                //     printf(" -> %s", realPath);
+                // }
             }
             printf("\n");
         }
         dr = readdir(dirStream);
-        if (freeFlag == 1)
-        {
-            free(realPath);
-            freeFlag = 0;
-        }
+        // if (freeFlag == 1)
+        // {
+        //     free(realPath);
+        //     freeFlag = 0;
+        // }
     }
     closedir(dirStream);
 }
