@@ -109,7 +109,7 @@ void ls_l(char *dir)
                 printPermission(buf.st_mode);
                 printf("%14lu", buf.st_nlink);
                 printf("%14s", getpwuid(buf.st_uid)->pw_name);
-                printf("%14s", getgrgid(buf.st_uid)->gr_name);
+                printf("%14s", getgrgid(buf.st_gid)->gr_name);
                 printf("%14lu", buf.st_size);
                 strftime(time, sizeof(time), "%b %m %y %H:%M", timeinfo);
                 printf("%14s", time);
