@@ -75,7 +75,7 @@ void ls_l(char *dir)
     {
         if (dr->d_name[0] != '.')
         {
-            char *path = malloc(sizeof(char) * 1028);
+            char *path = malloc(sizeof(dir) + sizeof(dr->d_name) + 1);
             sprintf(path, "%s/%s", dir, dr->d_name);
             if (lstat(path, &buf) == -1)
             {
@@ -127,6 +127,7 @@ void ls_l(char *dir)
                 }
             }
             printf("\n");
+            free(path);
         }
         // dr = readdir(dirStream);
         if (freeFlag == 1)
