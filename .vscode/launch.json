@@ -10,7 +10,10 @@
             "request": "launch",
             "program": "${fileDirname}/${fileBasenameNoExtension}",
             "args": [
-                "-l"
+                "-i",
+                "-l",
+                "-R",
+                "./HW4/"
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
