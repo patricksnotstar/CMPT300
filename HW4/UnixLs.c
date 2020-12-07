@@ -70,119 +70,119 @@ void ls_l(char *dir)
     struct tm *timeinfo;
     char *realPath;
     int freeFlag = 0;
+    // while (dr != NULL)
     while ((dr = readdir(dirStream)) != NULL)
     {
-
-        // int ret = lstat(dir, &buf);
-        // if (ret == -1)
-        // {
-        //     printf("Cannot read file %s\n", dr->d_name);
-        //     exit(1);
-        // }
-        timeinfo = localtime(&buf.st_mtime);
         if (dr->d_name[0] != '.')
         {
+            char *path = malloc(sizeof(char) * 1028);
+            sprintf(path, "%s/%s", dir, dr->d_name);
+            if (lstat(path, &buf) == -1)
+            {
+                printf("Cannot read file %s\n", dr->d_name);
+                exit(1);
+            }
+            timeinfo = localtime(&buf.st_mtime);
             if (selectedOptions[0] == 1)
             {
                 printf("%lu  ", dr->d_ino);
             }
             if (selectedOptions[1] == 1)
             {
-                //         if (S_ISLNK(buf.st_mode))
-                //         {
-                //             freeFlag = 1;
-                //             printf("l");
-                //             realPath = malloc(buf.st_size + 1);
-                //             ssize_t nbytes = readlink(dr->d_name, realPath, buf.st_size + 1);
-                //             if (nbytes == -1)
-                //             {
-                //                 printf("Error Readlink\n");
-                //                 exit(1);
-                //             }
-                //             realPath[buf.st_size] = '\0';
-                //         }
-                //         else
-                //         {
-                //             printf((S_ISDIR(buf.st_mode)) ? "d" : "-");
-                //         }
-                //         printPermission(buf.st_mode);
-                //         printf("%14lu", buf.st_nlink);
-                //         printf("%14s", getpwuid(buf.st_uid)->pw_name);
-                //         printf("%14s", getgrgid(buf.st_uid)->gr_name);
-                //         printf("%14lu", buf.st_size);
-                //         strftime(time, sizeof(time), "%b %m %y %H:%M", timeinfo);
-                //         printf("%14s", time);
-                //     }
-                //     if (dr->d_type == DT_DIR)
-                //     {
-                //         printf("%14s%s'", "'", dr->d_name);
-                //     }
-                //     else
-                //     {
-                //         printf("%14s", dr->d_name);
-                //         if (selectedOptions[1] == 1 && S_ISLNK(buf.st_mode))
-                //         {
-                //             printf(" -> %s", realPath);
-                //         }
-                //     }
-                //     printf("\n");
-                // }
-                // dr = readdir(dirStream);
-                // if (freeFlag == 1)
-                // {
-                //     free(realPath);
-                //     freeFlag = 0;
-                // }
-                char *path = malloc(sizeof(char) * 1028);
-                sprintf(path, "%s/%s", dir, dr->d_name);
-                if (lstat(path, &buf) == -1)
+                if (S_ISLNK(buf.st_mode))
                 {
-                    printf("Cannot access '%s': File or directory doesn't exist!\n", dir);
-                    exit(1);
+                    freeFlag = 1;
+                    printf("l");
+                    realPath = malloc(buf.st_size + 1);
+                    ssize_t nbytes = readlink(path, realPath, buf.st_size + 1);
+                    if (nbytes == -1)
+                    {
+                        printf("Error Readlink\n");
+                        exit(1);
+                    }
+                    realPath[buf.st_size] = '\0';
                 }
-                if (dr->d_name[0] != '.')
+                else
                 {
-                    char _time[128];
-                    int isSoftLink = 0;
-                    struct passwd *pwd = getpwuid(buf.st_uid);
-                    struct group *grp = getgrgid(buf.st_gid);
-                    if (S_ISLNK(buf.st_mode))
-                    {
-                        isSoftLink = 1;
-                    }
-                    struct tm *tm = localtime(&buf.st_mtime);
-                    strftime(_time, sizeof(_time), "%b %d %Y %H:%M", tm);
-                    if (isSoftLink)
-                    {
-                        printf("l");
-                    }
-                    else
-                    {
-                        printf("%c", (S_ISDIR(buf.st_mode)) ? 'd' : '-');
-                    }
-                    printPermission(buf.st_mode);
-                    if (!isSoftLink)
-                    {
-                        printf(" %ld %s %s %lld %s %s\n", (long)buf.st_nlink, pwd->pw_name, grp->gr_name, (long long)buf.st_size, _time, dr->d_name);
-                    }
-                    else
-                    {
-                        char *link = malloc(buf.st_size + 1);
-                        ssize_t nbytes = readlink(path, link, buf.st_size + 1);
-                        if (nbytes == -1)
-                        {
-                            printf("Error - Readlink failed\n");
-                            exit(1);
-                        }
-                        link[buf.st_size] = '\0';
-                        printf(" %ld %s %s %lld %s %s -> %s\n", (long)buf.st_nlink, pwd->pw_name, grp->gr_name, (long long)buf.st_size, _time, dr->d_name, link);
-                        free(link);
-                    }
+                    printf((S_ISDIR(buf.st_mode)) ? "d" : "-");
                 }
-                free(path);
+                printPermission(buf.st_mode);
+                printf("%14lu", buf.st_nlink);
+                printf("%14s", getpwuid(buf.st_uid)->pw_name);
+                printf("%14s", getgrgid(buf.st_uid)->gr_name);
+                printf("%14lu", buf.st_size);
+                strftime(time, sizeof(time), "%b %m %y %H:%M", timeinfo);
+                printf("%14s", time);
             }
+            if (dr->d_type == DT_DIR)
+            {
+                printf("%14s%s'", "'", dr->d_name);
+            }
+            else
+            {
+                printf("%14s", dr->d_name);
+                if (selectedOptions[1] == 1 && S_ISLNK(buf.st_mode))
+                {
+                    printf(" -> %s", realPath);
+                }
+            }
+            printf("\n");
         }
+        // dr = readdir(dirStream);
+        if (freeFlag == 1)
+        {
+            free(realPath);
+            freeFlag = 0;
+        }
+        // char *path = malloc(sizeof(char) * 1028);
+        // sprintf(path, "%s/%s", dir, dr->d_name);
+        // if (lstat(path, &buf) == -1)
+        // {
+        //     printf("Cannot access '%s': File or directory doesn't exist!\n", dir);
+        //     exit(1);
+        // }
+        // if (dr->d_name[0] != '.')
+        // {
+        //     char _time[128];
+        //     int isSoftLink = 0;
+        //     struct passwd *pwd = getpwuid(buf.st_uid);
+        //     struct group *grp = getgrgid(buf.st_gid);
+        //     if (S_ISLNK(buf.st_mode))
+        //     {
+        //         isSoftLink = 1;
+        //     }
+        //     struct tm *tm = localtime(&buf.st_mtime);
+        //     strftime(_time, sizeof(_time), "%b %d %Y %H:%M", tm);
+        //     if (isSoftLink)
+        //     {
+        //         printf("l");
+        //     }
+        //     else
+        //     {
+        //         printf("%c", (S_ISDIR(buf.st_mode)) ? 'd' : '-');
+        //     }
+        //     printPermission(buf.st_mode);
+        //     if (!isSoftLink)
+        //     {
+        //         printf(" %ld %s %s %lld %s %s\n", (long)buf.st_nlink, pwd->pw_name, grp->gr_name, (long long)buf.st_size, _time, dr->d_name);
+        //     }
+        //     else
+        //     {
+        //         char *link = malloc(buf.st_size + 1);
+        //         ssize_t nbytes = readlink(path, link, buf.st_size + 1);
+        //         if (nbytes == -1)
+        //         {
+        //             printf("Error - Readlink failed\n");
+        //             exit(1);
+        //         }
+        //         link[buf.st_size] = '\0';
+        //         printf(" %ld %s %s %lld %s %s -> %s\n", (long)buf.st_nlink, pwd->pw_name, grp->gr_name, (long long)buf.st_size, _time, dr->d_name, link);
+        //         free(link);
+        //     }
+        // }
+        // free(path);
     }
+
     closedir(dirStream);
 }
 
