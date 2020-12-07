@@ -82,30 +82,30 @@ void ls_l(char *dir)
             }
             if (selectedOptions[1] == 1)
             {
-                if (S_ISLNK(buf.st_mode))
-                {
-                    freeFlag = 1;
-                    printf("l");
-                    realPath = malloc(buf.st_size + 1);
-                    ssize_t nbytes = readlink(dr->d_name, realPath, buf.st_size + 1);
-                    if (nbytes == -1)
-                    {
-                        printf("Error Readlink\n");
-                        exit(1);
-                    }
-                    realPath[buf.st_size] = '\0';
-                }
-                else
-                {
-                    printf((S_ISDIR(buf.st_mode)) ? "d" : "-");
-                }
-                printPermission(buf.st_mode);
-                printf("%14lu", buf.st_nlink);
-                printf("%14s", getpwuid(buf.st_uid)->pw_name);
-                printf("%14s", getgrgid(buf.st_uid)->gr_name);
-                printf("%14lu", buf.st_size);
-                strftime(time, sizeof(time), "%b %m %y %H:%M", timeinfo);
-                printf("%14s", time);
+                // if (S_ISLNK(buf.st_mode))
+                // {
+                //     freeFlag = 1;
+                //     printf("l");
+                //     realPath = malloc(buf.st_size + 1);
+                //     ssize_t nbytes = readlink(dr->d_name, realPath, buf.st_size + 1);
+                //     if (nbytes == -1)
+                //     {
+                //         printf("Error Readlink\n");
+                //         exit(1);
+                //     }
+                //     realPath[buf.st_size] = '\0';
+                // }
+                // else
+                // {
+                //     printf((S_ISDIR(buf.st_mode)) ? "d" : "-");
+                // }
+                // printPermission(buf.st_mode);
+                // printf("%14lu", buf.st_nlink);
+                // printf("%14s", getpwuid(buf.st_uid)->pw_name);
+                // printf("%14s", getgrgid(buf.st_uid)->gr_name);
+                // printf("%14lu", buf.st_size);
+                // strftime(time, sizeof(time), "%b %m %y %H:%M", timeinfo);
+                // printf("%14s", time);
             }
             if (dr->d_type == DT_DIR)
             {
