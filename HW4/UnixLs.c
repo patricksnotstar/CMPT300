@@ -72,10 +72,11 @@ void ls_l(char *dir)
     int freeFlag = 0;
     while (dr != NULL)
     {
-        int ret = lstat(dr->d_name, &buf);
+
+        int ret = lstat(dir, &buf);
         if (ret == -1)
         {
-            printf("Cannot access file %s\n", dr->d_name);
+            printf("Cannot read file %s\n", dr->d_name);
             exit(1);
         }
         timeinfo = localtime(&buf.st_mtime);
@@ -152,9 +153,7 @@ void ls_R(char *dir)
             if (dr->d_type == DT_DIR)
             {
                 char *realPath = malloc(sizeof(dir) + sizeof(dr->d_name) + 1);
-                strcpy(realPath, dir);
-                strcat(realPath, "/");
-                strcat(realPath, dr->d_name);
+                sprintf(realPath, "%s/%s", dir, dr->d_name);
                 ls_R(realPath);
                 free(realPath);
             }
