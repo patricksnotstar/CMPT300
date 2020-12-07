@@ -72,7 +72,12 @@ void ls_l(char *dir)
     int freeFlag = 0;
     while (dr != NULL)
     {
-        lstat(dr->d_name, &buf);
+        int ret = lstat(dr->d_name, &buf);
+        if (ret == -1)
+        {
+            printf("Cannot access file %s\n", dr->d_name);
+            exit(1);
+        }
         timeinfo = localtime(&buf.st_mtime);
         if (dr->d_name[0] != '.')
         {
@@ -82,30 +87,30 @@ void ls_l(char *dir)
             }
             if (selectedOptions[1] == 1)
             {
-                // if (S_ISLNK(buf.st_mode))
-                // {
-                //     freeFlag = 1;
-                //     printf("l");
-                //     realPath = malloc(buf.st_size + 1);
-                //     ssize_t nbytes = readlink(dr->d_name, realPath, buf.st_size + 1);
-                //     if (nbytes == -1)
-                //     {
-                //         printf("Error Readlink\n");
-                //         exit(1);
-                //     }
-                //     realPath[buf.st_size] = '\0';
-                // }
-                // else
-                // {
-                //     printf((S_ISDIR(buf.st_mode)) ? "d" : "-");
-                // }
-                // printPermission(buf.st_mode);
-                // printf("%14lu", buf.st_nlink);
-                // printf("%14s", getpwuid(buf.st_uid)->pw_name);
-                // printf("%14s", getgrgid(buf.st_uid)->gr_name);
-                // printf("%14lu", buf.st_size);
-                // strftime(time, sizeof(time), "%b %m %y %H:%M", timeinfo);
-                // printf("%14s", time);
+                if (S_ISLNK(buf.st_mode))
+                {
+                    freeFlag = 1;
+                    printf("l");
+                    realPath = malloc(buf.st_size + 1);
+                    ssize_t nbytes = readlink(dr->d_name, realPath, buf.st_size + 1);
+                    if (nbytes == -1)
+                    {
+                        printf("Error Readlink\n");
+                        exit(1);
+                    }
+                    realPath[buf.st_size] = '\0';
+                }
+                else
+                {
+                    printf((S_ISDIR(buf.st_mode)) ? "d" : "-");
+                }
+                printPermission(buf.st_mode);
+                printf("%14lu", buf.st_nlink);
+                printf("%14s", getpwuid(buf.st_uid)->pw_name);
+                printf("%14s", getgrgid(buf.st_uid)->gr_name);
+                printf("%14lu", buf.st_size);
+                strftime(time, sizeof(time), "%b %m %y %H:%M", timeinfo);
+                printf("%14s", time);
             }
             if (dr->d_type == DT_DIR)
             {
@@ -114,19 +119,19 @@ void ls_l(char *dir)
             else
             {
                 printf("%14s", dr->d_name);
-                // if (selectedOptions[1] == 1 && S_ISLNK(buf.st_mode))
-                // {
-                //     printf(" -> %s", realPath);
-                // }
+                if (selectedOptions[1] == 1 && S_ISLNK(buf.st_mode))
+                {
+                    printf(" -> %s", realPath);
+                }
             }
             printf("\n");
         }
         dr = readdir(dirStream);
-        // if (freeFlag == 1)
-        // {
-        //     free(realPath);
-        //     freeFlag = 0;
-        // }
+        if (freeFlag == 1)
+        {
+            free(realPath);
+            freeFlag = 0;
+        }
     }
     closedir(dirStream);
 }
@@ -151,6 +156,7 @@ void ls_R(char *dir)
                 strcat(realPath, "/");
                 strcat(realPath, dr->d_name);
                 ls_R(realPath);
+                free(realPath);
             }
         }
         dr = readdir(dirStream);
