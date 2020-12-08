@@ -81,7 +81,7 @@ void ls_l(char *dir)
             timeinfo = localtime(&buf.st_mtime);
             if (selectedOptions[0] == 1)
             {
-                printf("%lu ", dr->d_ino);
+                printf("%-8lu ", dr->d_ino);
             }
             if (selectedOptions[1] == 1)
             {
@@ -103,10 +103,10 @@ void ls_l(char *dir)
                     printf((S_ISDIR(buf.st_mode)) ? "d" : "-");
                 }
                 printPermission(buf.st_mode);
-                printf("%2lu", buf.st_nlink);
-                printf("%14s", getpwuid(buf.st_uid)->pw_name);
-                printf("%14s", getgrgid(buf.st_gid)->gr_name);
-                printf("%9lu", buf.st_size);
+                printf(" %1lu", buf.st_nlink);
+                printf(" %14s", getpwuid(buf.st_uid)->pw_name);
+                printf(" %14s", getgrgid(buf.st_gid)->gr_name);
+                printf(" %9lu", buf.st_size);
                 strftime(time, sizeof(time), "%b %m %Y %H:%M", timeinfo);
                 printf(" %s ", time);
             }
