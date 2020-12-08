@@ -10,7 +10,6 @@
 #include <unistd.h>
 
 int selectedOptions[3];
-
 void printPermission(mode_t buf)
 {
     printf((buf & S_IRUSR) ? "r" : "-");
@@ -41,16 +40,15 @@ void ls(char *dir)
         {
             if (dr->d_type == DT_DIR)
             {
-                printf("'%s'  ", dr->d_name);
+                printf("'%s'\n", dr->d_name);
             }
             else
             {
-                printf("%s  ", dr->d_name);
+                printf("%s\n", dr->d_name);
             }
         }
         dr = readdir(dirStream);
     }
-    printf("\n");
     closedir(dirStream);
 }
 
@@ -83,7 +81,7 @@ void ls_l(char *dir)
             timeinfo = localtime(&buf.st_mtime);
             if (selectedOptions[0] == 1)
             {
-                printf("%lu  ", dr->d_ino);
+                printf("%lu ", dr->d_ino);
             }
             if (selectedOptions[1] == 1)
             {
@@ -95,7 +93,7 @@ void ls_l(char *dir)
                     ssize_t nbytes = readlink(path, realPath, buf.st_size + 1);
                     if (nbytes == -1)
                     {
-                        printf("Error Readlink\n");
+                        printf("Cannot read link\n");
                         exit(1);
                     }
                     realPath[buf.st_size] = '\0';
@@ -105,21 +103,29 @@ void ls_l(char *dir)
                     printf((S_ISDIR(buf.st_mode)) ? "d" : "-");
                 }
                 printPermission(buf.st_mode);
-                printf("%14lu", buf.st_nlink);
+                printf("%2lu", buf.st_nlink);
                 printf("%14s", getpwuid(buf.st_uid)->pw_name);
                 printf("%14s", getgrgid(buf.st_gid)->gr_name);
-                printf("%14lu", buf.st_size);
-                strftime(time, sizeof(time), "%b %m %y %H:%M", timeinfo);
-                printf("%14s", time);
+                printf("%9lu", buf.st_size);
+                strftime(time, sizeof(time), "%b %m %Y %H:%M", timeinfo);
+                printf(" %s ", time);
             }
-            if (dr->d_type == DT_DIR)
+            if (strchr(dr->d_name, ' ') != NULL)
             {
-                printf("%14s%s'", "'", dr->d_name);
+                printf("'%s'", dr->d_name);
             }
             else
             {
-                printf("%14s", dr->d_name);
-                if (selectedOptions[1] == 1 && S_ISLNK(buf.st_mode))
+                printf("%s", dr->d_name);
+            }
+
+            if (selectedOptions[1] == 1 && S_ISLNK(buf.st_mode))
+            {
+                if (strchr(realPath, ' ') != NULL)
+                {
+                    printf(" -> '%s'", realPath);
+                }
+                else
                 {
                     printf(" -> %s", realPath);
                 }
@@ -139,7 +145,14 @@ void ls_l(char *dir)
 
 void ls_R(char *dir)
 {
-    printf("%s: \n", dir);
+    if (strchr(dir, ' ') != NULL)
+    {
+        printf("'%s': \n", dir);
+    }
+    else
+    {
+        printf("%s: \n", dir);
+    }
     ls_l(dir);
     printf("\n");
     DIR *dirStream = opendir(dir);
@@ -161,28 +174,6 @@ void ls_R(char *dir)
                 {
                     sprintf(realPath, "%s/%s", dir, dr->d_name);
                 }
-                // int index = 0;
-                // for (int i = strlen(dir) - 1; i > 0; i--)
-                // {
-                //     if (dir[i] != '/')
-                //     {
-                //         index = i;
-                //         break;
-                //     }
-                // }
-                // char *tmp = malloc(sizeof(dir) + sizeof(dr->d_name) + 1);
-                // tmp = NULL;
-                // for (int i = 0; i < index; i++)
-                // {
-                //     if (tmp == NULL)
-                //     {
-                //         strncpy(tmp, &dir[i], 1);
-                //     }
-                //     strncat(tmp, &dir[i], 1);
-                // }
-                // printf("LINE 217 %s\n", tmp);
-
-                // printf("LINE 207 %s\n", realPath);
                 ls_R(realPath);
                 free(realPath);
             }
@@ -222,6 +213,9 @@ int main(int argc, char *argv[])
                     case 'R':
                         selectedOptions[2] = 1;
                         break;
+                    default:
+                        printf("Invalid option -- %c\n", argv[i][j]);
+                        exit(1);
                     }
                 }
             }
