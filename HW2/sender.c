@@ -22,11 +22,7 @@ static NetworkInfo *remote;
 void *SenderTx(void *args)
 {
     char *message;
-<<<<<<< HEAD
     info->senderThread = pthread_self();
-
-=======
->>>>>>> origin
     while (!data->terminationFlag)
     {
         if (data->toSendItems >= 1)
@@ -52,10 +48,6 @@ void *SenderTx(void *args)
                 printf("\nError sending message\n");
                 return NULL;
             }
-<<<<<<< HEAD
-=======
-
->>>>>>> origin
             // Deallocate message after sending
             free(message);
         }
